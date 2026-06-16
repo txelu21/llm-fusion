@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.venv/
+venv/
+.env
+.env.*
+
+# Council run artifacts — regenerated every run; can contain sensitive prompts/outputs.
+# This is the local audit trail, not version-controlled source.
+council-runs/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# dev/personal — never publish
+.planning/
+CLAUDE.md
+AGENTS.md

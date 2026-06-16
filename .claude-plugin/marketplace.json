@@ -1,0 +1,14 @@
+{
+  "name": "fusion",
+  "owner": { "name": "Gabriel Judah" },
+  "plugins": [
+    {
+      "name": "llm-fusion",
+      "source": "./plugins/llm-fusion",
+      "version": "1.2.0",
+      "description": "LLM Fusion — sealed multi-model council for Claude Code. Claude + Codex + Gemini answer and build independently, anonymized, then a judge fuses the best. Many models in, one fused answer out. Commands: /fusion-council (decide) and /fusion-build (build).",
+      "author": { "name": "Gabriel Judah" },
+      "keywords": ["llm", "fusion", "council", "multi-model", "claude", "codex", "gemini"]
+    }
+  ]
+}

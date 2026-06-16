@@ -1,0 +1,7 @@
+{
+  "name": "llm-fusion",
+  "version": "1.2.0",
+  "description": "LLM Fusion — sealed multi-model council for Claude Code. Claude + Codex + Gemini answer and build independently, anonymized, then a judge fuses the best (many models in, one fused answer out). Adds /fusion-council (decisions) and /fusion-build (build-off). Requires the claude, codex, and gemini CLIs installed + authenticated, and Python 3.11+.",
+  "author": { "name": "Gabriel Judah" },
+  "keywords": ["llm", "fusion", "council", "multi-model", "claude", "codex", "gemini"]
+}
