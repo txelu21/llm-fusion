@@ -12,7 +12,7 @@ All notable changes to LLM Fusion.
 - **Latent `gemini` fallback adapter** (`council_runner/adapters/gemini.py`) — the documented kill-switch for the Google seat: a drop-in for `agy`/Antigravity using the official `@google/gemini-cli` (`gemini -p … --model …`, plain-text, YOLO off / read-only). Registered but NOT wired into `agents.yaml`; activate by swapping `cli: antigravity` -> `cli: gemini`. Use only if Antigravity is unavailable (note: a `GEMINI_API_KEY` path is metered API, against the "local CLIs, no keys" design — prefer subscription auth).
 - Tests: Grok + Gemini provider/argv/executor-guard/self-ref coverage; updated roster-count assertions.
 
-> Two grok-specific flags (`--mode ask`, `--output-format json`) are assumed from xAI's headless docs — confirm once against `grok --help`; `--doctor --ping` catches a mismatch and the JSON parser degrades to raw text rather than corrupting.
+> Grok flags + model CONFIRMED LIVE against grok 0.2.77 (`--permission-mode plan` for read-only, `--output-format json`, `-p/--single`, `--model`; grok.com tier model = `grok-composer-2.5-fast`). `--doctor --ping` makes a real round-1 grok call and passes.
 
 ### Changed
 - Switched the Google provider surface from `gemini` CLI to `antigravity` CLI while keeping Gemini model names in the roster.
