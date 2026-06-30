@@ -6,11 +6,13 @@ from .base import Adapter
 from .antigravity import AntigravityAdapter
 from .claude import ClaudeAdapter
 from .codex import CodexAdapter
+from .grok import GrokAdapter
 
 _REGISTRY: dict[str, type[Adapter]] = {
     "claude": ClaudeAdapter,
     "codex": CodexAdapter,
     "antigravity": AntigravityAdapter,
+    "grok": GrokAdapter,
 }
 
 SUPPORTED_CLIS = tuple(_REGISTRY)

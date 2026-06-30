@@ -2,7 +2,16 @@
 
 All notable changes to LLM Fusion.
 
-## Unreleased
+## [1.3.0] — 2026-06-30 (fork: txelu21 — Grok)
+
+### Added
+- **Fourth provider: Grok (xAI).** New `GrokAdapter` (`council_runner/adapters/grok.py`) drives the xAI Grok Build CLI (`grok`) in headless read-only mode (`-p … --output-format json --mode ask`), with a defensive answer extractor that handles json / streaming-json / plain-text output. Registered in the adapter registry (`SUPPORTED_CLIS` now 4).
+- **`roles/realist.md`** — Grok's lens: live market/world reality, timing, and data-grounded risk.
+- Roster: `grok-realist` added to `advise_agents` (now **7 lenses across 5 models**) and `grok-builder` to `execute_agents` (now **4 models**). Grok is an advisor/planner only — it **never** executes; the autonomous executor stays codex-only (the only CLI with a real OS seatbelt).
+- Seal hardened: anonymization patterns + round-1 prompts now strip Grok/xAI self-references too.
+- Tests: Grok provider/argv/executor-guard/self-ref coverage; updated roster-count assertions.
+
+> Two grok-specific flags (`--mode ask`, `--output-format json`) are assumed from xAI's headless docs — confirm once against `grok --help`; `--doctor --ping` catches a mismatch and the JSON parser degrades to raw text rather than corrupting.
 
 ### Changed
 - Switched the Google provider surface from `gemini` CLI to `antigravity` CLI while keeping Gemini model names in the roster.

@@ -1,7 +1,7 @@
 {
   "name": "llm-fusion",
-  "version": "1.2.0",
-  "description": "LLM Fusion — sealed multi-model council for Claude Code. Claude + Codex + Antigravity answer and build independently, anonymized, then a judge fuses the best (many models in, one fused answer out). Adds /fusion-council (decisions) and /fusion-build (build-off). Requires the claude, codex, and agy CLIs installed + authenticated, and Python 3.11+.",
+  "version": "1.3.0",
+  "description": "LLM Fusion — sealed multi-model council for Claude Code. Claude + Codex + Antigravity + Grok answer and build independently, anonymized, then a judge fuses the best (many models in, one fused answer out). Adds /fusion-council (decisions) and /fusion-build (build-off). Requires the claude, codex, agy, and grok CLIs installed + authenticated, and Python 3.11+.",
   "author": { "name": "Gabriel Judah" },
-  "keywords": ["llm", "fusion", "council", "multi-model", "claude", "codex", "antigravity"]
+  "keywords": ["llm", "fusion", "council", "multi-model", "claude", "codex", "antigravity", "grok", "xai"]
 }

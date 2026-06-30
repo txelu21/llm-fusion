@@ -1,11 +1,11 @@
 ---
 name: fusion-build
-description: Run a build goal through the LLM Fusion council in EXECUTE (fusion) mode — claude + codex + antigravity each PLAN it independently (same builder role), anonymized, then you synthesize one execution spec AS the Judge and build it. Use when the user says "fusion-build", "fusion build this", "have the council build", or wants multiple real models to independently plan a task before one synthesized plan is executed. For decisions/advice (no building) use /fusion-council.
+description: Run a build goal through the LLM Fusion council in EXECUTE (fusion) mode — claude + codex + antigravity + grok each PLAN it independently (same builder role), anonymized, then you synthesize one execution spec AS the Judge and build it. Use when the user says "fusion-build", "fusion build this", "have the council build", or wants multiple real models to independently plan a task before one synthesized plan is executed. For decisions/advice (no building) use /fusion-council.
 ---
 
 # fusion-build — sealed multi-model council (execute / fusion mode)
 
-This is a **build-off**: the 3 models (claude/codex/antigravity) each plan the goal **wearing the SAME builder role** — so the diversity is purely *how each model executes the same task*, not different personalities. You are the **Judge**: fuse the best of each into one execution spec, then **work on it**. (Contrast advise mode, where the agents wear *different* lenses.)
+This is a **build-off**: the 4 models (claude/codex/antigravity/grok) each plan the goal **wearing the SAME builder role** — so the diversity is purely *how each model executes the same task*, not different personalities. You are the **Judge**: fuse the best of each into one execution spec, then **work on it**. (Contrast advise mode, where the agents wear *different* lenses.) Note: grok plans like the others but never executes — codex remains the only autonomous executor.
 
 ## Steps
 
@@ -15,7 +15,7 @@ This is a **build-off**: the 3 models (claude/codex/antigravity) each plan the g
    PLUGIN="${PLUGIN:-$HOME/projects/llm-fusion/plugins/llm-fusion}"
    cd "$PLUGIN" && python3 -m council_runner --mode execute --judge handoff --brief "<the build goal>" [--workspace <abs path to the repo/dir to build in>]
    ```
-   Each of the 3 models produces a PLAN for the same goal (same builder role), sealed and anonymized. The runner exits `awaiting-judge` with the run path. Pass `--workspace` when the work targets an existing project; omit it for greenfield.
+   Each of the 4 models produces a PLAN for the same goal (same builder role), sealed and anonymized. The runner exits `awaiting-judge` with the run path. Pass `--workspace` when the work targets an existing project; omit it for greenfield.
 
 2. **Read ONLY the anonymized plans.** Read `<run>/JUDGE_INSTRUCTIONS.md` and `<run>/public/answers/*.md`. **Do NOT open `mapping.json`.**
 

@@ -1,6 +1,6 @@
 ---
 name: fusion-council
-description: Run a decision, question, or tradeoff through the LLM Fusion sealed multi-model council (claude + codex + antigravity answer independently, anonymized), then synthesize the verdict AS the Judge. Use when the user says "fusion-council", "fusion council", "fusion this", "sealed council", "run the fusion council", or wants real different models (not in-Claude lenses) to pressure-test a decision and hand it back for a judged verdict. For the lighter in-Claude lenses tool use /council instead; to BUILD something use /fusion-build.
+description: Run a decision, question, or tradeoff through the LLM Fusion sealed multi-model council (claude + codex + antigravity + grok answer independently, anonymized), then synthesize the verdict AS the Judge. Use when the user says "fusion-council", "fusion council", "fusion this", "sealed council", "run the fusion council", or wants real different models (not in-Claude lenses) to pressure-test a decision and hand it back for a judged verdict. For the lighter in-Claude lenses tool use /council instead; to BUILD something use /fusion-build.
 ---
 
 # fusion-council — sealed multi-model council (advise mode)
@@ -23,10 +23,10 @@ You orchestrate a **sealed council** of real, different models, then you are the
 
 4. **Show the range, then the verdict (transparency).** Because the run is a blocking subprocess the user can't watch live, surface what each member contributed BEFORE your synthesis: a one-line-per-answer summary (Answer A/B/C… → its recommendation + confidence) so they see the spread of views, not just your conclusion. Then give the verdict + run path. Confirm `final_report.md` exists and is non-empty. If `meta.json` has a DIVERSITY WARNING (fewer than 3 models survived — e.g. a CLI was unauthenticated), surface it plainly and suggest re-running after fixing auth.
 
-The default advise council is **6 lenses across 4 models** (architect, pragmatist, skeptic, first-principles, operator, user-advocate). Edit `advise_agents` in `agents.yaml` to widen/narrow it.
+The default advise council is **7 lenses across 5 models** / 4 vendors (architect, pragmatist, skeptic, first-principles, operator, user-advocate, realist). Edit `advise_agents` in `agents.yaml` to widen/narrow it.
 
 ## Notes
 - **Don't answer from your own reasoning first.** The whole point is the sealed council; run it, then judge what it produced.
 - A failed agent (not-authenticated / rate-limited / timeout) is handled gracefully — the council proceeds on quorum (≥2 answers from ≥2 providers). If it aborts below quorum, relay the actionable error.
 - For a **fully unattended / headless** run (no main-session judging), use `--judge auto` instead — the runner spawns a fresh judge CLI and writes `final_report.md` itself.
-- Doctor check before a run if unsure: `cd "$PLUGIN" && python3 -m council_runner --doctor` (verifies the member has claude + codex + agy installed + authenticated).
+- Doctor check before a run if unsure: `cd "$PLUGIN" && python3 -m council_runner --doctor` (verifies the member has claude + codex + agy + grok installed + authenticated).

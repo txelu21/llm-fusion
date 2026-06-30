@@ -331,10 +331,10 @@ _LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 # self-reference patterns stripped as a *backup* defense (the primary defense is
 # the round-1 "do not identify yourself" instruction). Every hit is logged.
 _SELF_REF_PATTERNS = [
-    r"\bas (an? )?(Claude|GPT|ChatGPT|OpenAI|Gemini|Google|Anthropic|Codex|Antigravity)\b[^.,;:\n]*",
-    r"\bI(?:'m| am) (Claude|GPT|ChatGPT|Gemini|Codex|Antigravity|an? \w+ model)\b",
-    r"\b(Claude|GPT-?\d?\.?\d?|Gemini|Codex|Antigravity)\b",
-    r"\bas the (architect|pragmatist|skeptic|operator|user[- ]advocate|first[- ]principles)\b",
+    r"\bas (an? )?(Claude|GPT|ChatGPT|OpenAI|Gemini|Google|Anthropic|Codex|Antigravity|Grok|xAI)\b[^.,;:\n]*",
+    r"\bI(?:'m| am) (Claude|GPT|ChatGPT|Gemini|Codex|Antigravity|Grok|an? \w+ model)\b",
+    r"\b(Claude|GPT-?\d?\.?\d?|Gemini|Codex|Antigravity|Grok|xAI)\b",
+    r"\bas the (architect|pragmatist|skeptic|operator|user[- ]advocate|first[- ]principles|realist)\b",
 ]
 
 

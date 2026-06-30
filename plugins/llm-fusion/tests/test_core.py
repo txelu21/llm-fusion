@@ -19,10 +19,11 @@ class TestMiniYaml(unittest.TestCase):
         self.assertEqual(data["defaults"]["quorum"], 2)
         self.assertEqual(data["judge"]["backend"], "handoff")
         self.assertEqual(data["executor"]["cli"], "codex")
-        self.assertEqual(len(data["advise_agents"]), 6)
-        self.assertEqual(len(data["execute_agents"]), 3)
+        self.assertEqual(len(data["advise_agents"]), 7)
+        self.assertEqual(len(data["execute_agents"]), 4)
         names = {a["name"] for a in data["advise_agents"]}
         self.assertIn("claude-architect", names)
+        self.assertIn("grok-realist", names)  # fork: 4th provider (xAI)
         # execute agents share the builder role
         self.assertEqual({a["role"] for a in data["execute_agents"]}, {"roles/builder.md"})
         # types preserved
@@ -80,6 +81,12 @@ class TestAnonymize(unittest.TestCase):
         cleaned, hits = strip_self_refs("As Claude, I am Claude and I run GPT-4.")
         self.assertTrue(hits)
         self.assertNotIn("Claude", cleaned)
+
+    def test_grok_self_refs_stripped_from_answers(self):
+        cleaned, hits = strip_self_refs("As Grok from xAI, I'd ship it.")
+        self.assertTrue(hits)
+        self.assertNotIn("Grok", cleaned)
+        self.assertNotIn("xAI", cleaned)
 
 
 class TestRunFolder(unittest.TestCase):
