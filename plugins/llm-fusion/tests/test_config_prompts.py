@@ -132,6 +132,41 @@ class TestRoster(unittest.TestCase):
         self.assertIn("--mode", args)
         self.assertIn("ask", args)                     # read-only lens (no file edits)
 
+    def test_gemini_fallback_is_registered_but_latent(self):
+        # registered as a provider...
+        self.assertIn("gemini", SUPPORTED_CLIS)
+        # ...but NOT wired into the shipped roster (antigravity stays the Google seat).
+        roster = load_roster(ROOT / "agents.yaml")
+        used = {a.cli for a in roster.advise_agents + roster.execute_agents}
+        self.assertNotIn("gemini", used)
+
+    def test_gemini_invoke_uses_headless_plaintext(self):
+        d = Path(tempfile.mkdtemp())
+        args_file = d / "args.txt"
+        gem = d / "gemini"
+        gem.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$@\" > '{args_file}'\nprintf 'READY\\n'\n")
+        gem.chmod(0o755)
+        workdir = d / "work"
+        workdir.mkdir()
+        spec = AgentSpec(name="gemini-skeptic", cli="gemini", model="gemini-2.5-pro", role="roles/skeptic.md")
+        adapter = get_adapter(spec, login_path=str(d))
+
+        result = asyncio.run(adapter.invoke(
+            "Answer the brief.", model="gemini-2.5-pro", workdir=workdir,
+            timeout=5, role_text="You are the skeptic.",
+        ))
+
+        args_text = args_file.read_text()
+        args = args_text.splitlines()
+        self.assertEqual(result.status, Status.OK)
+        self.assertEqual(result.answer, "READY")        # plain-text stdout
+        self.assertEqual(args[0], "-p")                 # headless prompt mode
+        self.assertIn("You are the skeptic.", args_text)  # role prepended
+        self.assertIn("--model", args)
+        self.assertIn("gemini-2.5-pro", args)
+        self.assertNotIn("-y", args)                    # YOLO must stay OFF (read-only)
+        self.assertNotIn("--yolo", args)
+
     def test_grok_executor_is_refused(self):
         # grok must NEVER be the autonomous executor (codex-only by design).
         spec = AgentSpec(name="grok-builder", cli="grok", model="grok-4", role="roles/builder.md")

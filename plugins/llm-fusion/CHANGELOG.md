@@ -9,7 +9,8 @@ All notable changes to LLM Fusion.
 - **`roles/realist.md`** — Grok's lens: live market/world reality, timing, and data-grounded risk.
 - Roster: `grok-realist` added to `advise_agents` (now **7 lenses across 5 models**) and `grok-builder` to `execute_agents` (now **4 models**). Grok is an advisor/planner only — it **never** executes; the autonomous executor stays codex-only (the only CLI with a real OS seatbelt).
 - Seal hardened: anonymization patterns + round-1 prompts now strip Grok/xAI self-references too.
-- Tests: Grok provider/argv/executor-guard/self-ref coverage; updated roster-count assertions.
+- **Latent `gemini` fallback adapter** (`council_runner/adapters/gemini.py`) — the documented kill-switch for the Google seat: a drop-in for `agy`/Antigravity using the official `@google/gemini-cli` (`gemini -p … --model …`, plain-text, YOLO off / read-only). Registered but NOT wired into `agents.yaml`; activate by swapping `cli: antigravity` -> `cli: gemini`. Use only if Antigravity is unavailable (note: a `GEMINI_API_KEY` path is metered API, against the "local CLIs, no keys" design — prefer subscription auth).
+- Tests: Grok + Gemini provider/argv/executor-guard/self-ref coverage; updated roster-count assertions.
 
 > Two grok-specific flags (`--mode ask`, `--output-format json`) are assumed from xAI's headless docs — confirm once against `grok --help`; `--doctor --ping` catches a mismatch and the JSON parser degrades to raw text rather than corrupting.
 
