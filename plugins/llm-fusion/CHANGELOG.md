@@ -2,6 +2,11 @@
 
 All notable changes to LLM Fusion.
 
+## [1.3.1] — 2026-06-30 (fork: txelu21)
+
+### Changed
+- Sonnet seat upgraded to **Sonnet 5** (`claude-firstprinciples` model `sonnet` → `claude-sonnet-5`, released 2026-06-30, narrows the gap with Opus 4.8). Roster unchanged otherwise — still 7 lenses / 5 models / 4 vendors. Verified the `claude` CLI accepts `--model claude-sonnet-5` live.
+
 ## [1.3.0] — 2026-06-30 (fork: txelu21 — Grok)
 
 ### Added
