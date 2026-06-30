@@ -42,7 +42,7 @@ advise_agents:
   - { name: claude-firstprinciples, cli: claude, model: sonnet,         role: roles/first-principles.md }
   - { name: antigravity-operator,   cli: antigravity, model: gemini-3.1-pro-preview, role: roles/operator.md }
   - { name: codex-useradvocate,     cli: codex,  model: gpt-5.5,        role: roles/user-advocate.md }
-  - { name: grok-realist,           cli: grok,   model: grok-4,         role: roles/realist.md }
+  - { name: grok-realist,           cli: grok,   model: grok-composer-2.5-fast, role: roles/realist.md }
 
 # ---- EXECUTE: the build-off (SAME role, one per distinct model) --------------
 # Identical builder role; the diversity IS the model. Judge fuses the best of
@@ -53,4 +53,4 @@ execute_agents:
   - { name: claude-builder, cli: claude, model: opus,           role: roles/builder.md }
   - { name: codex-builder,  cli: codex,  model: gpt-5.5,        role: roles/builder.md }
   - { name: antigravity-builder, cli: antigravity, model: gemini-3.1-pro-preview, role: roles/builder.md }
-  - { name: grok-builder,   cli: grok,   model: grok-4,         role: roles/builder.md }
+  - { name: grok-builder,   cli: grok,   model: grok-composer-2.5-fast, role: roles/builder.md }

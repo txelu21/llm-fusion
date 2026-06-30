@@ -129,8 +129,9 @@ class TestRoster(unittest.TestCase):
         self.assertIn("--model", args)
         self.assertIn("grok-4", args)
         self.assertIn("--output-format", args)
-        self.assertIn("--mode", args)
-        self.assertIn("ask", args)                     # read-only lens (no file edits)
+        self.assertIn("--permission-mode", args)
+        self.assertIn("plan", args)                    # read-only mode (no file edits)
+        self.assertNotIn("--mode", args)               # the non-existent flag must be gone
 
     def test_gemini_fallback_is_registered_but_latent(self):
         # registered as a provider...

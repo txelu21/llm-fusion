@@ -6,12 +6,12 @@ grok has no proven OS-level fs sandbox flag in this runner, so the autonomous
 executor stays codex-only (the only CLI with a real seatbelt). Grok's value here
 is the realist lens: live market/world reality, timing, and data-grounded risk.
 
-Two grok-specific flags are assumed from xAI's headless docs and MUST be
-confirmed once against `grok --help` (see auth_check note): `--mode ask`
-(read-only Q&A, no file edits) and `--output-format json`. If either is wrong
-the call fails loudly and `--doctor --ping` catches it; the JSON parse already
-falls back to raw stdout, so a wrong --output-format value degrades, it doesn't
-corrupt."""
+Flags confirmed against `grok --help` (Grok Build TUI, 2026-06-30): `-p/--single`
+(headless single-turn → stdout), `--model`, `--output-format {plain,json,
+streaming-json}`, and `--permission-mode {default,plan,…}` where `plan` is the
+read-only mode (reads/searches but never edits or executes — keeps grok's live
+web-search edge, its realist differentiator, while blocking writes). The JSON
+parse falls back to raw stdout, so a stray output shape degrades, not corrupts."""
 from __future__ import annotations
 
 import json
@@ -25,10 +25,9 @@ from ..core import AgentResult, Status
 class GrokAdapter(Adapter):
     cli_name = "grok"
 
-    # The two grok-specific flags to confirm against `grok --help`. Centralized
-    # so a correction is a one-line edit, not a hunt through invoke().
-    READONLY_MODE = "ask"          # grok --mode {code|plan|ask}; ask = no edits
-    OUTPUT_FORMAT = "json"         # grok --output-format {text|json|streaming-json}
+    # Centralized so a correction is a one-line edit, not a hunt through invoke().
+    PERMISSION_MODE = "plan"       # grok --permission-mode {default,plan,…}; plan = read-only
+    OUTPUT_FORMAT = "json"         # grok --output-format {plain,json,streaming-json}
 
     async def invoke(
         self, prompt, *, model, workdir, timeout,
@@ -47,7 +46,7 @@ class GrokAdapter(Adapter):
             "-p", full_prompt,
             "--model", model,
             "--output-format", self.OUTPUT_FORMAT,
-            "--mode", self.READONLY_MODE,
+            "--permission-mode", self.PERMISSION_MODE,
         ]
 
         rc, out, err, dur, timed = await self._run(argv, cwd=workdir, timeout=timeout)
