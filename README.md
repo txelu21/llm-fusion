@@ -55,21 +55,53 @@ flowchart LR
 
 ## 🎬 See it actually run
 
-A real `/fusion-council` run (verbatim) — a deliberately low-stakes test decision, *"is a 50-line one-off CSV→JSON script worth unit tests + argparse?"* — fanned out to **7 lenses across 5 models**:
+Three real councils. Three people. Three decisions you'd genuinely want four sharp advisors for — not one confident chatbot. *(Verbatim stances from the sealed run; the verdict is the judge's synthesis.)*
 
-| Sealed answer | Recommendation | Confidence |
-|:---:|---|:---:|
-| A | Lightweight CLI paths; tests only if the transform is non-trivial | med |
-| B | Stay minimal + hardcoded, fail-fast validation | high |
-| C | Skip tests; **strict runtime schema assertions, fail loud** | high |
-| D | One pure transform function + one test on it; named constants > argparse | high |
-| E | argparse + schema assertions + atomic writes | high |
-| F | Lightweight argparse + validation + one smoke test | high |
-| G | Maybe **no Python at all** — `csvjson`/`jq` one-liner | high |
+### 💸 The founder — *"Raise now, or grind?"*
 
-> **⚖️ Judge's verdict:** *Skip the formal test suite. Spend the effort on the two things the council near-unanimously flagged as the real risk — loud input validation and parameterized I/O — and factor the transform into one pure function (the only choice that's expensive to reverse). High confidence: 6 of 7 converged; the dissent (G) usefully questioned whether the script should exist at all.*
+```
+/fusion-council "4 months of runway, 40 paying users — raise a seed now or grind to profitability?"
+```
 
-Five rival models, one fused answer — and a dissent you'd never have heard from a single model.
+**The room split:**
+- 🟢 **Grind to strength** *(4 of 7)* — don't raise off a 4-month wall; cut burn, extend runway, and raise *from* strength, if at all.
+- 🔴 **Timeboxed raise** *(2 of 7)* — run a strict ~45-day fundraising sprint with a hard circuit-breaker back to cost-cutting.
+
+> ⚖️ **Verdict:** Cut burn *this week* to turn the death-clock into optionality — then, and only then, raise as a timeboxed sprint with a default-alive fallback.
+>
+> 💡 **The answer that reframed the question:** the *realist* refused to pick a side — *"40 users and 4 months aren't enough to choose; put your burn, MRR, margin and churn on the table first."* Sometimes the most valuable voice tells you you're not ready to ask yet.
+
+### 🧭 The builder — *"Niche down, or stay broad?"*
+
+```
+/fusion-council "Narrow my product to one vertical, or stay horizontal to keep my options open?"
+```
+
+**The room agreed to narrow — then split on *what to narrow*:**
+- 🟢 **Narrow the go-to-market** *(4 of 7)* — sell vertical (positioning, onboarding, ICP) but keep the engine horizontal in design.
+- 🔵 **Narrow everything** *(2 of 7)* — full-commit to one vertical to kill the multi-cohort overhead.
+
+> ⚖️ **Verdict:** Narrow your **message**, not your **codebase**. Pick one beachhead with *urgent budget*, sell it like you do nothing else — and keep the product horizontal underneath so you don't fork yourself into a corner.
+>
+> 💡 **The realist's check:** choose the vertical by which buyers have urgency and money *right now*, not by founder preference.
+
+### 📈 The marketer — *"$5k of ad budget: all-in or split?"*
+
+```
+/fusion-council "My first \$5,000 of ad budget — all-in on one channel, or split across three?"
+```
+
+**The room split:**
+- 🟢 **Concentrate** *(most of the room)* — an even 3-way split starves every channel's algorithm of data; you'll learn nothing.
+- 🔴 **Scout, then concentrate** — a small ~15–20% test across 2–3 channels first, then pour the rest into the winner.
+
+> ⚖️ **Verdict:** Don't spread $5k thin. Spend ~15–20% scouting 2–3 channels for real signal, then go all-in on the one that bites.
+>
+> 💡 **The skeptic's gut-punch:** *"Splitting $5k three ways starves the algorithms — guaranteeing a total loss of capital with zero actionable insight."* Meanwhile the realist went and pulled **live ad-market signals** to pick the scouting channels.
+
+---
+
+**One model hands you one of these answers, confidently.** A council hands you every camp, the dissent that reframes the question, *then* a ruling. That's the difference between a chatbot and a boardroom.
 
 ---
 
