@@ -66,18 +66,18 @@ class GrokAdapter(Adapter):
     def auth_check(self) -> tuple[bool, str]:
         if not self.installed():
             return False, "not installed"
-        # env keys first (headless CI path)
-        for var in ("XAI_API_KEY", "GROK_API_KEY", "GROK_CODE_XAI_API_KEY"):
+        # env keys first (headless / enterprise path). GROK_DEPLOYMENT_KEY takes
+        # precedence per the official installer; XAI_API_KEY for the public API.
+        for var in ("GROK_DEPLOYMENT_KEY", "XAI_API_KEY", "GROK_API_KEY", "GROK_CODE_XAI_API_KEY"):
             if os.environ.get(var):
                 return True, f"{var} set"
-        # browser-OAuth / API-key creds live under ~/.grok (presence only, not contents).
+        # `grok login` (browser OAuth) writes ~/.grok/auth.json (confirmed from the
+        # official install.sh). Presence only, never contents.
         gdir = Path.home() / ".grok"
-        for fname in ("oauth_creds.json", "credentials.json", "auth.json", "user-settings.json"):
+        for fname in ("auth.json", "oauth_creds.json", "credentials.json", "user-settings.json"):
             if (gdir / fname).exists():
                 return True, f"~/.grok/{fname} present"
-        # NOTE: confirm grok's real auth-status / config surface with `grok inspect`
-        # or `grok --help`; adjust the cred filenames above if they differ.
-        return False, "no XAI_API_KEY / ~/.grok creds (run: grok  -> browser login, or export XAI_API_KEY)"
+        return False, "no XAI_API_KEY / ~/.grok/auth.json (run: grok login, or export XAI_API_KEY)"
 
 
 # --------------------------------------------------------------------------- #
