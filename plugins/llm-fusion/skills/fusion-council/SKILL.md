@@ -27,6 +27,7 @@ The default advise council is **7 lenses across 5 models** / 4 vendors (architec
 
 ## Notes
 - **Don't answer from your own reasoning first.** The whole point is the sealed council; run it, then judge what it produced.
+- **Fact-sensitive decision? Ground it first with `--context-file`.** The members reason from training knowledge (no live web) — so if the call depends on current facts (prices, recent events, competitor moves, this-week metrics), do ONE research pass up front (deep-research, `/last30days`, or your own lookup), write the verified facts to a file, and pass `--context-file <path>`. Those facts are injected into every member's brief (and the judge's) as a shared "## Shared context" block, so all members reason over the SAME grounded facts. Do NOT try to give members live browsing — one shared pass keeps the run fast, diverse, and reproducible. Research → brief → deliberate.
 - A failed agent (not-authenticated / rate-limited / timeout) is handled gracefully — the council proceeds on quorum (≥2 answers from ≥2 providers). If it aborts below quorum, relay the actionable error.
 - For a **fully unattended / headless** run (no main-session judging), use `--judge auto` instead — the runner spawns a fresh judge CLI and writes `final_report.md` itself.
 - Doctor check before a run if unsure: `cd "$PLUGIN" && python3 -m council_runner --doctor` (verifies the member has claude + codex + agy + grok installed + authenticated).

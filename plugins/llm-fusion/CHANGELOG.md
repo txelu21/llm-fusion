@@ -2,6 +2,11 @@
 
 All notable changes to LLM Fusion.
 
+## [1.3.3] — 2026-07-01 (fork: txelu21 — shared-context grounding)
+
+### Added
+- **`--context-file <PATH>`** — inject a file of verified/shared facts into **every** member's round-1 prompt (and the judge's) as a `## Shared context` block. This is how you **ground a fact-sensitive decision without giving each member live web access**: do one research pass up front (e.g. deep-research / last30days), drop the verified facts in a file, and every member reasons over the **same** facts on equal footing. Deliberately preferred over per-member browsing, which would (a) slow every run to browse latency, (b) **converge** answers on the same search results (killing the diversity that is the council's value), and (c) make runs non-reproducible. The `{{CONTEXT}}` template slot collapses to nothing when the flag is absent (backward compatible). Facts copied to `<run>/context.md`; `context_chars` recorded in `meta.json`; warns if the file exceeds 50k chars (it multiplies per-member token cost). Pattern: **research → brief → deliberate** (keep `/fusion-council` = judgment, `deep-research` = web facts; chain them, don't merge them).
+
 ## [1.3.2] — 2026-07-01 (fork: txelu21 — Grok reliability)
 
 ### Fixed

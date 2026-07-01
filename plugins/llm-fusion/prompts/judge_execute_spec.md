@@ -1,6 +1,6 @@
 You are **The Judge** of a sealed multi-model AI council. You did **not** participate in Round 1. Below are the anonymized PLANS of the council members (labelled A, B, C, …), each produced independently by a different AI model wearing a different role. Judge the plans on their merits, not their source.
 
-## The original goal
+{{CONTEXT}}## The original goal
 {{BRIEF}}
 
 ## The council's plans

@@ -23,6 +23,7 @@ from .core import (
     Status,
     anonymize,
     append_failure,
+    context_block,
     create_run_folder,
     load_yaml,
     render,
@@ -193,10 +194,12 @@ async def _run_one_agent(adapter, *, prompt, model, workdir, timeout, retries,
 
 
 async def run_round1(roster: RosterConfig, agents: list[AgentSpec], project_root: Path,
-                     login_path: str, paths: RunPaths, template: str, brief: str) -> list[AgentResult]:
+                     login_path: str, paths: RunPaths, template: str, brief: str,
+                     context: str | None = None) -> list[AgentResult]:
     models = ", ".join(sorted({a.model for a in agents}))
     print(f"  fanning out to {len(agents)} agents in parallel across [{models}]...",
           file=sys.stderr, flush=True)
+    ctx = context_block(context)  # same shared-facts block for every member
 
     async def one(agent: AgentSpec) -> AgentResult:
         adapter = get_adapter(agent, login_path)
@@ -204,7 +207,7 @@ async def run_round1(roster: RosterConfig, agents: list[AgentSpec], project_root
         role_text = role_path.read_text(encoding="utf-8")
         agent_dir = paths.agent_dir(agent.name)
         agent_dir.mkdir(parents=True, exist_ok=True)
-        prompt = render(template, ROLE=role_text, BRIEF=brief)
+        prompt = render(template, ROLE=role_text, BRIEF=brief, CONTEXT=ctx)
         (agent_dir / "role.md").write_text(role_text, encoding="utf-8")
         (agent_dir / "prompt.md").write_text(prompt, encoding="utf-8")
         res = await _run_one_agent(

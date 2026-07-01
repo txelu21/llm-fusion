@@ -11,7 +11,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .adapters import get_adapter
-from .core import AgentSpec, RosterConfig, RunPaths, Status, create_run_folder, render
+from .core import AgentSpec, RosterConfig, RunPaths, Status, context_block, create_run_folder, render
 from .orchestrator import (
     CouncilError,
     answers_block,
@@ -46,8 +46,9 @@ async def _judge_cli(roster: RosterConfig, login_path: str, prompt: str,
                                 timeout=roster.judge_timeout, role_text=None, role_path=None)
 
 
-def _write_handoff(template: str, brief: str, answers, paths: RunPaths, mode: str) -> None:
-    body = render(template, BRIEF=brief, ANSWERS=answers_block(answers))
+def _write_handoff(template: str, brief: str, answers, paths: RunPaths, mode: str,
+                   context: str | None = None) -> None:
+    body = render(template, BRIEF=brief, ANSWERS=answers_block(answers), CONTEXT=context_block(context))
     preamble = (
         f"# Judge instructions — {mode} mode (you are the Judge)\n\n"
         "You are the main session acting as the council Judge. Read ONLY the "
@@ -61,13 +62,17 @@ def _write_handoff(template: str, brief: str, answers, paths: RunPaths, mode: st
 # --------------------------------------------------------------------------- #
 # Advise
 # --------------------------------------------------------------------------- #
-async def run_advise(roster, project_root, login_path, prompts, brief, runs_base, backend) -> RunPaths:
+async def run_advise(roster, project_root, login_path, prompts, brief, runs_base, backend,
+                     context=None) -> RunPaths:
     paths = create_run_folder(runs_base, "advise", brief)
+    if context:
+        (paths.root / "context.md").write_text(context, encoding="utf-8")
     write_meta(paths, mode="advise", brief=brief, started=now_iso(), judge_backend=backend,
-               roster=[asdict(a) for a in roster.advise_agents], status="running")
+               roster=[asdict(a) for a in roster.advise_agents], status="running",
+               context_chars=len(context) if context else 0)
 
     results = await run_round1(roster, roster.advise_agents, project_root, login_path,
-                               paths, prompts["round1_advise"], brief)
+                               paths, prompts["round1_advise"], brief, context)
     ok, notes = check_quorum(results, roster.quorum)  # raises CouncilError below quorum
     answers = anonymize_and_write(ok, paths, _seed(paths))
     write_meta(paths, round1=[r.to_dict() for r in results], diversity_notes=notes,
@@ -75,7 +80,8 @@ async def run_advise(roster, project_root, login_path, prompts, brief, runs_base
 
     if backend == "auto":
         paths.judge.mkdir(parents=True, exist_ok=True)
-        jprompt = render(prompts["judge_advise"], BRIEF=brief, ANSWERS=answers_block(answers))
+        jprompt = render(prompts["judge_advise"], BRIEF=brief, ANSWERS=answers_block(answers),
+                         CONTEXT=context_block(context))
         (paths.judge / "prompt.md").write_text(jprompt, encoding="utf-8")
         res = await _judge_cli(roster, login_path, jprompt, paths.judge, "judge")
         (paths.judge / "output.md").write_text(res.answer or res.error_detail, encoding="utf-8")
@@ -89,7 +95,7 @@ async def run_advise(roster, project_root, login_path, prompts, brief, runs_base
         write_meta(paths, status="complete", ended=now_iso(),
                    judge_identity=f"{res.cli}/{res.model} (auto)", final_report=str(paths.final_report))
     else:
-        _write_handoff(prompts["judge_advise"], brief, answers, paths, "advise")
+        _write_handoff(prompts["judge_advise"], brief, answers, paths, "advise", context)
         write_meta(paths, status="awaiting-judge", ended=now_iso(),
                    judge_identity="main-session (handoff)")
     return paths
@@ -98,14 +104,18 @@ async def run_advise(roster, project_root, login_path, prompts, brief, runs_base
 # --------------------------------------------------------------------------- #
 # Execute
 # --------------------------------------------------------------------------- #
-async def run_execute(roster, project_root, login_path, prompts, brief, runs_base, backend, workspace) -> RunPaths:
+async def run_execute(roster, project_root, login_path, prompts, brief, runs_base, backend, workspace,
+                      context=None) -> RunPaths:
     paths = create_run_folder(runs_base, "execute", brief)
+    if context:
+        (paths.root / "context.md").write_text(context, encoding="utf-8")
     write_meta(paths, mode="execute", brief=brief, started=now_iso(), judge_backend=backend,
                roster=[asdict(a) for a in roster.execute_agents], status="running",
-               workspace=str(workspace) if workspace else None)
+               workspace=str(workspace) if workspace else None,
+               context_chars=len(context) if context else 0)
 
     results = await run_round1(roster, roster.execute_agents, project_root, login_path,
-                               paths, prompts["round1_execute"], brief)
+                               paths, prompts["round1_execute"], brief, context)
     ok, notes = check_quorum(results, roster.quorum)
     answers = anonymize_and_write(ok, paths, _seed(paths))
     write_meta(paths, round1=[r.to_dict() for r in results], diversity_notes=notes,
@@ -113,7 +123,7 @@ async def run_execute(roster, project_root, login_path, prompts, brief, runs_bas
 
     if backend != "auto":
         # main session synthesizes the spec AND executes it directly ("works on it")
-        _write_handoff(prompts["judge_execute_spec"], brief, answers, paths, "execute")
+        _write_handoff(prompts["judge_execute_spec"], brief, answers, paths, "execute", context)
         write_meta(paths, status="awaiting-judge", ended=now_iso(),
                    judge_identity="main-session (handoff)")
         return paths
@@ -121,7 +131,8 @@ async def run_execute(roster, project_root, login_path, prompts, brief, runs_bas
     # auto: judge synthesizes a spec, then sandboxed executor + auditor run it.
     paths.execute.mkdir(parents=True, exist_ok=True)
     paths.judge.mkdir(parents=True, exist_ok=True)
-    jprompt = render(prompts["judge_execute_spec"], BRIEF=brief, ANSWERS=answers_block(answers))
+    jprompt = render(prompts["judge_execute_spec"], BRIEF=brief, ANSWERS=answers_block(answers),
+                     CONTEXT=context_block(context))
     (paths.judge / "prompt.md").write_text(jprompt, encoding="utf-8")
     jres = await _judge_cli(roster, login_path, jprompt, paths.judge, "judge")
     (paths.judge / "output.md").write_text(jres.answer or jres.error_detail, encoding="utf-8")

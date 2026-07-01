@@ -62,6 +62,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="handoff = main session judges (default); auto = self-contained CLI judge")
     p.add_argument("--workspace", default=None,
                    help="execute mode: dir copied into the sandbox as the executor's writable root")
+    p.add_argument("--context-file", default=None, metavar="PATH",
+                   help="file of verified/shared facts injected into EVERY member's brief (and the judge's) "
+                        "as a 'Shared context' block — grounds a fact-sensitive decision without giving each "
+                        "member live web access. Do one research pass up front, drop the facts here.")
     p.add_argument("--agents", default=str(PKG_ROOT / "agents.yaml"),
                    help="path to agents.yaml")
     p.add_argument("--runs-dir", default=str(data_dir() / "council-runs"),
@@ -188,13 +192,27 @@ def main(argv: list[str] | None = None) -> int:
     workspace = Path(args.workspace).expanduser().resolve() if args.workspace else None
     runs_dir.mkdir(parents=True, exist_ok=True)
 
+    context = None
+    if args.context_file:
+        cpath = Path(args.context_file).expanduser().resolve()
+        if not cpath.exists():
+            print(f"error: --context-file not found: {cpath}", file=sys.stderr)
+            return 2
+        context = cpath.read_text(encoding="utf-8")
+        if not context.strip():
+            print(f"warning: --context-file is empty, ignoring: {cpath}", file=sys.stderr)
+            context = None
+        elif len(context) > 50_000:
+            print(f"warning: --context-file is large ({len(context)} chars) — it is injected into "
+                  f"EVERY member prompt, multiplying token cost per run.", file=sys.stderr)
+
     try:
         if args.mode == "advise":
             paths = asyncio.run(run_advise(roster, project_root, login_path, prompts,
-                                           args.brief, runs_dir, backend))
+                                           args.brief, runs_dir, backend, context))
         else:
             paths = asyncio.run(run_execute(roster, project_root, login_path, prompts,
-                                            args.brief, runs_dir, backend, workspace))
+                                            args.brief, runs_dir, backend, workspace, context))
     except CouncilError as e:
         print(f"\ncouncil aborted: {e}", file=sys.stderr)
         return 1

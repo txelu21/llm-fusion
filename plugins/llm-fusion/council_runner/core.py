@@ -253,6 +253,20 @@ def render(template: str, **vars: str) -> str:
     return out
 
 
+def context_block(context: str | None) -> str:
+    """Render the optional shared-context section injected into the {{CONTEXT}}
+    slot of every round-1 and judge prompt. This is how you GROUND a fact-sensitive
+    decision without giving each member live web access: do one research pass
+    up front, drop the verified facts here, and every member reasons over the SAME
+    facts on equal footing (keeps speed, diversity, and reproducibility). Empty
+    when no context, so the slot collapses cleanly."""
+    if not context or not context.strip():
+        return ""
+    return ("## Shared context (verified facts — treat as ground truth; reason "
+            "FROM these, do not re-derive or dispute them)\n\n"
+            + context.strip() + "\n\n")
+
+
 # --------------------------------------------------------------------------- #
 # Run folder
 # --------------------------------------------------------------------------- #
