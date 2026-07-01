@@ -7,6 +7,8 @@ shipped agents.yaml shape (top-level maps + a list of inline flow mappings).
 """
 from __future__ import annotations
 
+import json
+import os
 import random
 import re
 from dataclasses import dataclass, field, asdict
@@ -363,3 +365,32 @@ def anonymize(ok_results: list[AgentResult], seed: int) -> tuple[dict[str, str],
         answers[letter] = cleaned
         mapping[letter] = {"name": res.name, "cli": res.cli, "model": res.model}
     return answers, mapping
+
+
+# --------------------------------------------------------------------------- #
+# Failure log (cross-run observability)
+# --------------------------------------------------------------------------- #
+# Every non-OK agent outcome is appended here, across ALL runs, so recurring
+# failures (e.g. a chronically-slow member) become visible instead of vanishing
+# into per-run private/ dirs. Summarized by `python -m council_runner --failures`.
+def data_home() -> Path:
+    """Persistent, writable data home (mirrors cli.data_dir): $CLAUDE_PLUGIN_DATA
+    or ~/.llm-council. Never the plugin dir (read-only, wiped on update)."""
+    base = os.environ.get("CLAUDE_PLUGIN_DATA")
+    return Path(base) if base else Path.home() / ".llm-council"
+
+
+def failures_log_path() -> Path:
+    return data_home() / "council-failures.jsonl"
+
+
+def append_failure(entry: dict) -> None:
+    """Best-effort append of one non-OK agent outcome to the cross-run failure
+    log. Never raises — observability must not break a run."""
+    try:
+        path = failures_log_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass

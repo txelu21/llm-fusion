@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import sys
+from collections import Counter
 from pathlib import Path
 
 from .adapters import SUPPORTED_CLIS, get_adapter
-from .core import AgentSpec, Status
+from .core import AgentSpec, Status, failures_log_path
 from .flows import run_advise, run_execute
 from .orchestrator import (
     CouncilError,
@@ -67,6 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--doctor", action="store_true", help="report per-CLI readiness and exit")
     p.add_argument("--ping", action="store_true",
                    help="with --doctor: fire one real round-1 call per CLI to prove the live path")
+    p.add_argument("--failures", nargs="?", const=20, type=int, metavar="N",
+                   help="summarize the cross-run failure log (last N entries, default 20) and exit")
     return p
 
 
@@ -117,12 +121,47 @@ async def _ping_one(adapter, spec: AgentSpec, runs_dir: Path):
                                 model=spec.model, workdir=wd, timeout=90)
 
 
+def _failures(n: int) -> int:
+    """Summarize the cross-run failure log: counts by (cli, status) so a chronic
+    offender (e.g. grok/timeout) is obvious, then the last N raw entries."""
+    path = failures_log_path()
+    if not path.exists():
+        print(f"no failure log yet — clean so far ({path})")
+        return 0
+    rows = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    if not rows:
+        print(f"failure log is empty ({path})")
+        return 0
+    by = Counter((r.get("cli"), r.get("status")) for r in rows)
+    print(f"council failure log — {len(rows)} failure(s) recorded  ({path})\n")
+    print("  by (cli, status):")
+    for (cli, status), c in by.most_common():
+        print(f"    {c:>4}  {cli or '?':<12} {status or '?'}")
+    show = rows[-n:]
+    print(f"\n  last {len(show)}:")
+    for r in show:
+        print(f"    {str(r.get('ts', '?'))[:19]}  {str(r.get('cli', '?')):<11} "
+              f"{str(r.get('status', '?')):<14} {r.get('duration_s', '?')}s  "
+              f"a{r.get('attempts', '?')}  {(r.get('detail') or '')[:80]}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     # persistent config home first (members keep their token here), then the
     # plugin/repo dir (dev convenience). setdefault => first one wins.
     _load_local_env(data_dir() / ".env.local")
     _load_local_env(PKG_ROOT / ".env.local")
     args = build_parser().parse_args(argv)
+    if args.failures is not None:  # roster-independent — inspect the log even if agents.yaml is broken
+        return _failures(args.failures)
     agents_yaml = Path(args.agents).expanduser().resolve()
     project_root = agents_yaml.parent
     runs_dir = Path(args.runs_dir).expanduser().resolve()

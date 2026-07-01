@@ -2,6 +2,19 @@
 
 All notable changes to LLM Fusion.
 
+## [1.3.2] — 2026-07-01 (fork: txelu21 — Grok reliability)
+
+### Fixed
+- **Grok no longer times out and gets silently dropped every run.** Root cause: headless `-p` ran grok as a full agent (web-search + subagents + multi-turn loops on by default), so `grok-composer-2.5-fast` streamed 40KB+ of reasoning past the 300s budget; `--output-format json` buffered it all and **lost it on the kill** (empty stdout); and `TIMEOUT` was non-retryable with no fallback. Grok is now pinned to a **single-shot reasoner** matching its peers: `--output-format streaming-json` + `--max-turns 1` + `--no-subagents` + `--disable-web-search` (grok.py). Live: `grok-realist → ok (26s)`, was a 300s timeout.
+- **streaming-json extractor** (`_from_events`) now reads grok's actual event shape — text is in the `data` key of `{"type":"text","data":…}`; `{"type":"thought",…}` reasoning is excluded from the answer (was leaking raw NDJSON into the answer after the format switch).
+
+### Added
+- **Partial-output salvage.** `Adapter._run` now streams stdout/stderr into buffers so partial output SURVIVES a timeout kill (`communicate()` discarded it). Grok promotes a streamed-but-complete answer (closing `RECOMMENDATION` line present) to OK instead of losing it.
+- **Self-healing timeout retry.** A `TIMEOUT` on an adapter that opts in (`SUPPORTS_DEGRADED_RETRY`, currently grok) gets ONE fast degraded retry — `--effort low`, half the budget — before being dropped (orchestrator `_run_one_agent`). Other adapters' timeout handling is unchanged.
+- **Cross-run failure log + `--failures` CLI.** Every non-OK agent, across all runs, is appended to `~/.llm-council/council-failures.jsonl` (`core.append_failure`); `python -m council_runner --failures [N]` summarizes counts by (cli, status) plus the last N entries, so a chronic offender is obvious instead of vanishing into per-run dirs.
+
+> Note: disabling grok's live web-search makes it single-shot like the other members (the round-1 prompt is analysis-only, and no other member web-searches). Re-enable by raising `--max-turns` if the live-web lens is wanted back. Flags confirmed against grok 0.2.77.
+
 ## [1.3.1] — 2026-06-30 (fork: txelu21)
 
 ### Changed

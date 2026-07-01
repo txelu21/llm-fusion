@@ -46,6 +46,9 @@ def resolve_binary(name: str, explicit: str | None, login_path: str | None) -> s
 
 class Adapter(ABC):
     cli_name: str = "base"
+    # Adapters whose invoke() accepts degraded=True can self-heal a timeout with
+    # one fast, bounded fallback attempt (see orchestrator._run_one_agent).
+    SUPPORTS_DEGRADED_RETRY: bool = False
 
     def __init__(self, spec: AgentSpec, login_path: str | None = None):
         self.spec = spec
@@ -62,7 +65,12 @@ class Adapter(ABC):
         env: dict | None = None,
         stdin_devnull: bool = True,
     ) -> tuple[int | None, str, str, float, bool]:
-        """Run argv. Returns (returncode, stdout, stderr, duration_s, timed_out)."""
+        """Run argv. Returns (returncode, stdout, stderr, duration_s, timed_out).
+
+        Streams stdout/stderr into buffers instead of proc.communicate() so that
+        PARTIAL output SURVIVES a timeout kill (communicate() discards it). This
+        lets a streaming adapter salvage a near-complete answer that was still
+        buffering when the clock ran out, rather than losing it entirely."""
         full_env = dict(os.environ)
         if self.login_path:
             full_env["PATH"] = self.login_path + os.pathsep + full_env.get("PATH", "")
@@ -83,17 +91,39 @@ class Adapter(ABC):
             )
         except FileNotFoundError:
             return 127, "", f"{self.cli_name}: binary not found", time.monotonic() - start, False
+
+        out_buf: list[bytes] = []
+        err_buf: list[bytes] = []
+
+        async def _drain(stream, buf: list[bytes]) -> None:
+            if stream is None:
+                return
+            while True:
+                chunk = await stream.read(65536)
+                if not chunk:
+                    break
+                buf.append(chunk)
+
         try:
-            out_b, err_b = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            await asyncio.wait_for(
+                asyncio.gather(_drain(proc.stdout, out_buf), _drain(proc.stderr, err_buf)),
+                timeout=timeout,
+            )
+            rc = await proc.wait()
+            timed = False
         except asyncio.TimeoutError:
             try:
                 proc.kill()
             except ProcessLookupError:
                 pass
             await asyncio.gather(proc.wait(), return_exceptions=True)
-            return None, "", f"{self.cli_name}: timed out after {timeout}s", time.monotonic() - start, True
+            rc, timed = None, True
         dur = time.monotonic() - start
-        return proc.returncode, out_b.decode("utf-8", "replace"), err_b.decode("utf-8", "replace"), dur, False
+        out = b"".join(out_buf).decode("utf-8", "replace")
+        # on timeout keep the sentinel stderr contract (partial stdout is the salvage)
+        err = (f"{self.cli_name}: timed out after {timeout}s"
+               if timed else b"".join(err_buf).decode("utf-8", "replace"))
+        return rc, out, err, dur, timed
 
     # ---- classification ------------------------------------------------- #
     def _classify(self, rc: int | None, stdout: str, stderr: str, timed_out: bool) -> tuple[Status, str]:

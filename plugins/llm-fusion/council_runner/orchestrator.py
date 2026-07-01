@@ -22,6 +22,7 @@ from .core import (
     RunPaths,
     Status,
     anonymize,
+    append_failure,
     create_run_folder,
     load_yaml,
     render,
@@ -157,17 +158,31 @@ async def _run_one_agent(adapter, *, prompt, model, workdir, timeout, retries,
                          role_text, role_path) -> AgentResult:
     attempts = 0
     last: AgentResult | None = None
+    degraded = False
+    eff_timeout = timeout
     while True:
         attempts += 1
         res = await adapter.invoke(
-            prompt, model=model, workdir=workdir, timeout=timeout,
+            prompt, model=model, workdir=workdir, timeout=eff_timeout,
             role_text=role_text, role_path=role_path,
+            **({"degraded": True} if degraded else {}),
         )
         res.attempts = attempts
         last = res
         if res.status == Status.OK:
             return res
-        if attempts > retries or not res.status.is_retryable:
+        if attempts > retries:
+            return res
+        # Self-heal a timeout: adapters that support it (grok) get ONE fast, bounded
+        # degraded retry (lower reasoning effort, halved budget) instead of being
+        # silently dropped. A plain TIMEOUT is otherwise non-retryable by design
+        # (it already ate the whole budget — retrying it at full budget is waste).
+        if (res.status == Status.TIMEOUT and not degraded
+                and getattr(adapter, "SUPPORTS_DEGRADED_RETRY", False)):
+            degraded = True
+            eff_timeout = max(60, min(eff_timeout // 2, 180))
+            continue
+        if not res.status.is_retryable:
             return res
         # retryable (rate_limited): honor server reset if present, else backoff+jitter
         wait = _parse_retry_after(res.stderr + res.raw)
@@ -198,6 +213,19 @@ async def run_round1(roster: RosterConfig, agents: list[AgentSpec], project_root
             role_text=role_text, role_path=role_path,
         )
         _write_agent_artifacts(agent_dir, res)
+        if not res.ok:
+            append_failure({
+                "ts": now_iso(),
+                "run": paths.root.name,
+                "agent": agent.name,
+                "cli": agent.cli,
+                "model": agent.model,
+                "status": res.status.value,
+                "attempts": res.attempts,
+                "duration_s": res.duration_s,
+                "detail": (res.error_detail or "")[:300],
+                "partial_chars": len(res.raw or ""),
+            })
         mark = "✓" if res.ok else "✗"
         print(f"  {mark} {agent.name} ({agent.cli}/{agent.model}) → {res.status.value} "
               f"({res.duration_s}s)", file=sys.stderr, flush=True)

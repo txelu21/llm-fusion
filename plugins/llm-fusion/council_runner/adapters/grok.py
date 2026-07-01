@@ -4,14 +4,23 @@ mode. Role text is prepended because grok's headless mode has no separate
 system-prompt flag. Stateless per process. Executor (acting) is NOT supported —
 grok has no proven OS-level fs sandbox flag in this runner, so the autonomous
 executor stays codex-only (the only CLI with a real seatbelt). Grok's value here
-is the realist lens: live market/world reality, timing, and data-grounded risk.
+is the realist lens: grounded, plain-spoken judgment on timing and risk.
 
-Flags confirmed against `grok --help` (Grok Build TUI, 2026-06-30): `-p/--single`
+Flags confirmed against `grok --help` (Grok Build CLI 0.2.77): `-p/--single`
 (headless single-turn → stdout), `--model`, `--output-format {plain,json,
-streaming-json}`, and `--permission-mode {default,plan,…}` where `plan` is the
-read-only mode (reads/searches but never edits or executes — keeps grok's live
-web-search edge, its realist differentiator, while blocking writes). The JSON
-parse falls back to raw stdout, so a stray output shape degrades, not corrupts."""
+streaming-json}`, `--permission-mode {default,plan,…}` (plan = read-only),
+`--no-subagents`, `--max-turns <N>`, `--disable-web-search`, `--effort {low..max}`.
+
+RELIABILITY (fixed 2026-07-01, was: grok/timeout dropped every run): grok is a
+single-shot REASONER here, matching its single-shot peers — NOT an agent. Headless
+`-p` otherwise turns on web-search + subagents + multi-turn loops, which on a
+strategy brief made grok stream 40KB+ of reasoning past the 300s budget and get
+killed. So we pin: `streaming-json` (partial output survives a kill and can be
+salvaged, vs `json` which buffers to the end and loses everything), `--max-turns 1`
++ `--no-subagents` + `--disable-web-search` (no agentic loop). A timeout still
+gets ONE degraded retry (`--effort low`, shorter budget) before being dropped —
+see orchestrator._run_one_agent. The JSON parse falls back to raw stdout, so a
+stray output shape degrades, not corrupts."""
 from __future__ import annotations
 
 import json
@@ -24,14 +33,16 @@ from ..core import AgentResult, Status
 
 class GrokAdapter(Adapter):
     cli_name = "grok"
+    SUPPORTS_DEGRADED_RETRY = True  # a timeout gets one fast --effort low retry
 
     # Centralized so a correction is a one-line edit, not a hunt through invoke().
-    PERMISSION_MODE = "plan"       # grok --permission-mode {default,plan,…}; plan = read-only
-    OUTPUT_FORMAT = "json"         # grok --output-format {plain,json,streaming-json}
+    PERMISSION_MODE = "plan"          # grok --permission-mode {default,plan,…}; plan = read-only
+    OUTPUT_FORMAT = "streaming-json"  # streams events → partial survives a timeout kill (salvageable)
+    MAX_TURNS = "1"                   # single-shot reasoner, no agentic loop
 
     async def invoke(
         self, prompt, *, model, workdir, timeout,
-        role_text=None, role_path=None, execute=False, sandbox=None,
+        role_text=None, role_path=None, execute=False, sandbox=None, degraded=False,
     ) -> AgentResult:
         if not self.installed():
             return self._result(status=Status.NOT_INSTALLED, detail="grok not on PATH")
@@ -47,12 +58,26 @@ class GrokAdapter(Adapter):
             "--model", model,
             "--output-format", self.OUTPUT_FORMAT,
             "--permission-mode", self.PERMISSION_MODE,
+            "--max-turns", self.MAX_TURNS,
+            "--no-subagents",
+            "--disable-web-search",
         ]
+        # degraded = the self-heal retry after a timeout: cut reasoning effort so a
+        # verbose-but-slow member returns fast instead of being dropped a 2nd time.
+        if degraded:
+            argv += ["--effort", "low"]
 
         rc, out, err, dur, timed = await self._run(argv, cwd=workdir, timeout=timeout)
         status, detail = self._classify(rc, out, err, timed)
 
         answer = _extract_answer(out) if out.strip() else ""
+
+        # Salvage: a timeout whose streamed partial already carries a complete
+        # answer (mandated closing RECOMMENDATION line present) is usable — promote
+        # it rather than lose 40KB of real output to a kill-at-the-buzzer.
+        if status == Status.TIMEOUT and answer and "RECOMMENDATION" in answer.upper():
+            return self._result(status=Status.OK, answer=answer, raw=out, stderr=err, duration=dur,
+                                detail="grok: salvaged complete answer from streamed partial (timed out post-answer)")
 
         if status == Status.OK and not answer:
             # ran clean but produced nothing parseable -> transient hiccup, retryable
@@ -122,12 +147,15 @@ def _from_events(events: list) -> str:
             full = _from_obj(ev) or (ev.get("delta") if isinstance(ev.get("delta"), str) else "")
             if full:
                 final = full
-        # incremental text
+        # incremental text. grok Build CLI streaming-json emits token fragments as
+        # {"type":"text","data":"..."} — the text is in `data`; {"type":"thought",...}
+        # (reasoning) is deliberately NOT in this set, so thoughts stay out of the answer.
         if etype in ("text", "delta", "token", "content"):
-            for k in ("text", "delta", "content"):
+            for k in ("data", "text", "delta", "content"):
                 v = ev.get(k)
                 if isinstance(v, str):
                     chunks.append(v)
+                    break
     return (final or "".join(chunks)).strip()
 
 
